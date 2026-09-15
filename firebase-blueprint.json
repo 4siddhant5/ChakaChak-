@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "UserProfile": {
+      "collection": "users",
+      "fields": {
+        "id": { "type": "string", "description": "Auth UID" },
+        "name": { "type": "string", "description": "Customer display name" },
+        "email": { "type": "string", "description": "Customer email" },
+        "phone": { "type": "string", "description": "Contact phone number" },
+        "avatar": { "type": "string", "description": "Profile picture URL" },
+        "savedAddresses": { "type": "array", "description": "List of saved Mumbai delivery addresses" },
+        "totalSpend": { "type": "number", "description": "Total INR lifetime spend" },
+        "bookingsCount": { "type": "number", "description": "Total booked orders" },
+        "memberSince": { "type": "string", "description": "Membership join date" }
+      }
+    },
+    "Booking": {
+      "collection": "bookings",
+      "fields": {
+        "id": { "type": "string", "description": "Unique booking reference ID" },
+        "customerName": { "type": "string", "description": "Customer name" },
+        "customerPhone": { "type": "string", "description": "Customer phone" },
+        "customerAddress": { "type": "object", "description": "Full Mumbai address" },
+        "serviceType": { "type": "string", "description": "cleaning or transformation" },
+        "serviceTitle": { "type": "string", "description": "Display title of service" },
+        "configurationSummary": { "type": "string", "description": "BHK, furnishing or items summary" },
+        "date": { "type": "string", "description": "Service scheduled date" },
+        "timeSlot": { "type": "string", "description": "Selected time slot" },
+        "status": { "type": "string", "description": "confirmed, worker_assigned, en_route, job_started, completed, cancelled" },
+        "workerId": { "type": "string", "description": "Assigned partner ID" },
+        "workerName": { "type": "string", "description": "Assigned partner name" },
+        "workerPhone": { "type": "string", "description": "Assigned partner phone" },
+        "workerAvatar": { "type": "string", "description": "Assigned partner avatar" },
+        "totalAmount": { "type": "number", "description": "Total cost INR" },
+        "scopeTasks": { "type": "array", "description": "Checklist of service scope tasks" },
+        "beforePhotos": { "type": "array", "description": "Pre-service inspection photos" },
+        "afterPhotos": { "type": "array", "description": "Post-service inspection photos" }
+      }
+    },
+    "Worker": {
+      "collection": "workers",
+      "fields": {
+        "id": { "type": "string", "description": "Worker ID" },
+        "name": { "type": "string", "description": "Worker name" },
+        "phone": { "type": "string", "description": "Worker phone" },
+        "zone": { "type": "string", "description": "Assigned Mumbai territory" },
+        "status": { "type": "string", "description": "available, busy, offline" },
+        "onTimeRate": { "type": "number", "description": "Punctuality percentage" }
+      }
+    },
+    "Coupon": {
+      "collection": "coupons",
+      "fields": {
+        "code": { "type": "string", "description": "Promo code" },
+        "discountPercent": { "type": "number", "description": "Percentage discount" },
+        "minOrderValue": { "type": "number", "description": "Minimum cart value" },
+        "active": { "type": "boolean", "description": "Whether code is redeemable" }
+      }
+    }
+  }
+}
