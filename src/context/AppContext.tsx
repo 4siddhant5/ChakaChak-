@@ -615,6 +615,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({ children 
     setCheckoutStep(step);
     setActiveConfigServiceInternal(null);
     setActiveConfigInitialData(config);
+    if (config?.preferredDate || config?.preferredTimeSlot || config?.isUrgent !== undefined) {
+      updateCheckoutDraft({
+        ...(config.preferredDate ? { selectedDate: config.preferredDate } : {}),
+        ...(config.preferredTimeSlot ? { selectedSlot: config.preferredTimeSlot } : {}),
+        ...(config.isUrgent !== undefined ? { isUrgent: config.isUrgent } : {}),
+      });
+    }
     pushNav(step === 'review_and_pay' ? 'checkout_step2' : 'checkout_step1', 'modal', step === 'review_and_pay' ? 'Review & Payment' : 'Slot & Timing', { config });
   };
 

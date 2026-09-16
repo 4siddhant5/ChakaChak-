@@ -1,6 +1,6 @@
 {
   "name": "ChakaChak - Premium Mumbai Home Services",
   "description": "High-fidelity prototype for ChakaChak: Mumbai's premium home transformation, organizing, and deep cleaning platform across Customer, Partner, and Admin consoles.",
-  "requestFramePermissions": ["microphone"],
+  "requestFramePermissions": ["microphone", "camera"],
   "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
 }

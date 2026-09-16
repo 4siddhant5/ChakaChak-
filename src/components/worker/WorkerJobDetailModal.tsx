@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { Booking } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
+import { WorkerCameraModal } from './WorkerCameraModal';
 import confetti from 'canvas-confetti';
 import {
   X,
@@ -20,6 +21,9 @@ import {
   QrCode,
   Sparkles,
   ArrowLeft,
+  Image as ImageIcon,
+  Check,
+  CloudUpload,
 } from 'lucide-react';
 
 interface WorkerJobDetailModalProps {
@@ -74,15 +78,23 @@ export const WorkerJobDetailModal: React.FC<WorkerJobDetailModalProps> = ({
   const [expenseTitle, setExpenseTitle] = useState('');
   const [expenseAmount, setExpenseAmount] = useState('');
 
-  // Before & After Photos simulation
-  const [beforePhotos, setBeforePhotos] = useState<string[]>([
-    'https://images.unsplash.com/photo-1558997519-83ea9252edf8?auto=format&fit=crop&w=400&q=80',
-  ]);
+  // Real-time Before & After Photos from booking or defaults
+  const [beforePhotos, setBeforePhotos] = useState<string[]>(
+    booking.beforePhotos && booking.beforePhotos.length > 0
+      ? booking.beforePhotos
+      : ['https://images.unsplash.com/photo-1558997519-83ea9252edf8?auto=format&fit=crop&w=400&q=80']
+  );
   const [afterPhotos, setAfterPhotos] = useState<string[]>(
-    booking.status === 'completed'
+    booking.afterPhotos && booking.afterPhotos.length > 0
+      ? booking.afterPhotos
+      : booking.status === 'completed'
       ? ['https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=400&q=80']
       : []
   );
+
+  // Partner Camera Modal state
+  const [isCameraModalOpen, setIsCameraModalOpen] = useState(false);
+  const [cameraCategory, setCameraCategory] = useState<'before' | 'after'>('before');
 
   const handleAddExpense = (e: React.FormEvent) => {
     e.preventDefault();
@@ -301,59 +313,120 @@ export const WorkerJobDetailModal: React.FC<WorkerJobDetailModalProps> = ({
             </div>
           </div>
 
-          {/* Before & After Transformation Photos */}
-          <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-xs space-y-3">
+          {/* Before & After Transformation Photos (Firebase Storage Enabled) */}
+          <div className="bg-white dark:bg-slate-900/90 p-4 rounded-2xl border border-gray-100 dark:border-slate-800 shadow-xs space-y-3">
             <div className="flex items-center justify-between">
-              <span className="text-xs font-bold text-gray-700 uppercase">
-                Inspection & Transformation Photos
+              <div>
+                <span className="text-xs font-bold text-gray-700 dark:text-slate-200 uppercase flex items-center gap-1.5">
+                  <Camera className="w-3.5 h-3.5 text-[#FF5A5F]" />
+                  <span>Inspection & Completion Photos</span>
+                </span>
+                <p className="text-[10px] text-gray-400 dark:text-slate-400">
+                  Real-time photo verification saved to Firebase Storage
+                </p>
+              </div>
+              <span className="text-[10px] bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800 px-2 py-0.5 rounded-full font-semibold">
+                Cloud Sync Active
               </span>
-              <span className="text-[10px] text-gray-400 font-semibold">Verified on cloud</span>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div>
-                <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
-                  Before Condition
-                </span>
-                <div className="relative h-28 rounded-xl overflow-hidden border border-gray-200">
-                  <img
-                    src={beforePhotos[0]}
-                    alt="Before"
-                    className="w-full h-full object-cover"
-                  />
-                  <span className="absolute bottom-1.5 left-1.5 bg-black/60 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-sm">
-                    Pre-Work Photo
+              {/* Before Service Photos Column */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold text-gray-500 dark:text-slate-400 uppercase">
+                    Before Service ({beforePhotos.length})
                   </span>
                 </div>
-              </div>
 
-              <div>
-                <span className="text-[10px] font-bold text-gray-500 uppercase block mb-1">
-                  After Handover
-                </span>
-                {afterPhotos.length > 0 ? (
-                  <div className="relative h-28 rounded-xl overflow-hidden border border-emerald-300">
-                    <img
-                      src={afterPhotos[0]}
-                      alt="After"
-                      className="w-full h-full object-cover"
-                    />
-                    <span className="absolute bottom-1.5 left-1.5 bg-emerald-600 text-white text-[9px] font-bold px-1.5 py-0.2 rounded-sm">
-                      Completed 🌟
-                    </span>
+                {beforePhotos.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <div className="relative h-28 rounded-xl overflow-hidden border border-gray-200 dark:border-slate-700 shadow-2xs group">
+                      <img
+                        src={beforePhotos[beforePhotos.length - 1]}
+                        alt="Before Service Proof"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <span className="absolute bottom-1.5 left-1.5 bg-black/75 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1">
+                        <ShieldCheck className="w-2.5 h-2.5 text-emerald-400" />
+                        <span>Pre-Work Proof</span>
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraCategory('before');
+                        setIsCameraModalOpen(true);
+                      }}
+                      className="w-full py-1.5 px-2 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-[#FFF5F6] dark:hover:bg-slate-700 text-gray-700 dark:text-slate-300 hover:text-[#FF5A5F] text-[11px] font-bold flex items-center justify-center gap-1.5 border border-gray-200 dark:border-slate-700 transition"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-[#FF5A5F]" />
+                      <span>Take Another Photo</span>
+                    </button>
                   </div>
                 ) : (
                   <button
+                    type="button"
                     onClick={() => {
-                      setAfterPhotos([
-                        'https://images.unsplash.com/photo-1556911220-e15b29be8c8f?auto=format&fit=crop&w=400&q=80',
-                      ]);
-                      showToast('After photo captured & verified!');
+                      setCameraCategory('before');
+                      setIsCameraModalOpen(true);
                     }}
-                    className="h-28 w-full rounded-xl border-2 border-dashed border-gray-200 hover:border-[#FF5A5F] flex flex-col items-center justify-center text-gray-400 hover:text-[#FF5A5F] transition text-center p-2"
+                    className="h-28 w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-slate-700 hover:border-[#FF5A5F] dark:hover:border-[#FF5A5F] flex flex-col items-center justify-center text-gray-500 dark:text-slate-400 hover:text-[#FF5A5F] transition text-center p-2 bg-gray-50/50 dark:bg-slate-800/40"
                   >
-                    <Camera className="w-5 h-5 mb-1" />
-                    <span className="text-[10px] font-bold">Snap After Photo</span>
+                    <Camera className="w-5 h-5 mb-1 text-[#FF5A5F]" />
+                    <span className="text-[11px] font-bold">Snap Before Photo</span>
+                    <span className="text-[9px] text-gray-400">Client check-in</span>
+                  </button>
+                )}
+              </div>
+
+              {/* After Handover Photos Column */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-[10px] font-extrabold text-gray-500 dark:text-slate-400 uppercase">
+                    After Handover ({afterPhotos.length})
+                  </span>
+                </div>
+
+                {afterPhotos.length > 0 ? (
+                  <div className="space-y-1.5">
+                    <div className="relative h-28 rounded-xl overflow-hidden border border-emerald-400/80 dark:border-emerald-600 shadow-2xs group">
+                      <img
+                        src={afterPhotos[afterPhotos.length - 1]}
+                        alt="After Service Proof"
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                      <span className="absolute bottom-1.5 left-1.5 bg-emerald-700 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-md flex items-center gap-1 shadow-sm">
+                        <Sparkles className="w-2.5 h-2.5 text-amber-300" />
+                        <span>Completed Handover</span>
+                      </span>
+                    </div>
+
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCameraCategory('after');
+                        setIsCameraModalOpen(true);
+                      }}
+                      className="w-full py-1.5 px-2 rounded-xl bg-emerald-50 dark:bg-emerald-950/50 hover:bg-emerald-100 dark:hover:bg-emerald-900/60 text-emerald-800 dark:text-emerald-300 text-[11px] font-bold flex items-center justify-center gap-1.5 border border-emerald-200 dark:border-emerald-800 transition"
+                    >
+                      <Camera className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400" />
+                      <span>Take Another Photo</span>
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCameraCategory('after');
+                      setIsCameraModalOpen(true);
+                    }}
+                    className="h-28 w-full rounded-xl border-2 border-dashed border-gray-300 dark:border-slate-700 hover:border-emerald-500 flex flex-col items-center justify-center text-gray-500 dark:text-slate-400 hover:text-emerald-600 transition text-center p-2 bg-gray-50/50 dark:bg-slate-800/40"
+                  >
+                    <Camera className="w-5 h-5 mb-1 text-emerald-500" />
+                    <span className="text-[11px] font-bold">Snap After Photo</span>
+                    <span className="text-[9px] text-gray-400">Save to Storage</span>
                   </button>
                 )}
               </div>
@@ -482,6 +555,21 @@ export const WorkerJobDetailModal: React.FC<WorkerJobDetailModalProps> = ({
           )}
         </div>
       </div>
+
+      {/* Embedded Partner Service Camera Modal with Firebase Storage */}
+      <WorkerCameraModal
+        isOpen={isCameraModalOpen}
+        onClose={() => setIsCameraModalOpen(false)}
+        defaultBookingId={booking.id}
+        defaultCategory={cameraCategory}
+        onPhotoSaved={(photoUrl, category) => {
+          if (category === 'before') {
+            setBeforePhotos((prev) => [...prev, photoUrl]);
+          } else {
+            setAfterPhotos((prev) => [...prev, photoUrl]);
+          }
+        }}
+      />
     </div>
   );
 };

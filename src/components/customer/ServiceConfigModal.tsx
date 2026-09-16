@@ -10,6 +10,7 @@ import {
   SpecificItemPackage,
 } from '../../types';
 import { SPECIFIC_PACKAGES, CLEANING_ADDONS } from '../../data/mockData';
+import { PreferredTimeSlotsGrid } from './PreferredTimeSlotsGrid';
 import {
   X,
   Check,
@@ -24,6 +25,7 @@ import {
   ArrowLeft,
   Zap,
   HelpCircle,
+  Calendar,
 } from 'lucide-react';
 
 interface ServiceConfigModalProps {
@@ -43,6 +45,9 @@ interface ServiceConfigModalProps {
     originalAmount: number;
     specificPackage?: SpecificItemPackage;
     hourlyHours?: number;
+    preferredDate?: string;
+    preferredTimeSlot?: string;
+    isUrgent?: boolean;
   }) => void;
 }
 
@@ -62,6 +67,8 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
     getPreviousTitle,
     saveServiceConfigDraft,
     getServiceConfigDraft,
+    checkoutDraft,
+    updateCheckoutDraft,
   } = useApp();
 
   const currentServiceType = serviceType || activeConfigService;
@@ -101,6 +108,19 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
   );
   const [showTierComparison, setShowTierComparison] = useState(false);
 
+  // Preferred Time Slot states (cross-referenced with Firestore in real-time)
+  const [preferredDate, setPreferredDate] = useState<string>(
+    effectiveConfig?.preferredDate || checkoutDraft?.selectedDate || 'Today'
+  );
+  const [preferredSlot, setPreferredSlot] = useState<string>(
+    effectiveConfig?.preferredTimeSlot || checkoutDraft?.selectedSlot || '02:30 PM - 06:30 PM'
+  );
+  const [isUrgentDispatch, setIsUrgentDispatch] = useState<boolean>(
+    effectiveConfig?.isUrgent !== undefined
+      ? effectiveConfig.isUrgent
+      : checkoutDraft?.isUrgent || false
+  );
+
   // Persist draft whenever choices change
   useEffect(() => {
     if (currentServiceType) {
@@ -112,6 +132,9 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
         furnishing,
         serviceTier: selectedCleaningTier,
         selectedAddons,
+        preferredDate,
+        preferredTimeSlot: preferredSlot,
+        isUrgent: isUrgentDispatch,
       });
     }
   }, [
@@ -124,6 +147,9 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
     selectedCleaningTier,
     selectedCleaningBHK,
     selectedAddons,
+    preferredDate,
+    preferredSlot,
+    isUrgentDispatch,
   ]);
 
   useEffect(() => {
@@ -143,6 +169,9 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
       if (initialConfig.serviceTier) setSelectedCleaningTier(initialConfig.serviceTier);
       if (initialConfig.selectedAddons) setSelectedAddons(initialConfig.selectedAddons);
       if (initialConfig.specificPackage) setSelectedSpecificPkg(initialConfig.specificPackage);
+      if (initialConfig.preferredDate) setPreferredDate(initialConfig.preferredDate);
+      if (initialConfig.preferredTimeSlot) setPreferredSlot(initialConfig.preferredTimeSlot);
+      if (initialConfig.isUrgent !== undefined) setIsUrgentDispatch(initialConfig.isUrgent);
     }
   }, [initialConfig]);
 
@@ -214,6 +243,12 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
   };
 
   const handleContinue = () => {
+    updateCheckoutDraft({
+      selectedDate: preferredDate,
+      selectedSlot: isUrgentDispatch ? 'Within 90 mins' : preferredSlot,
+      isUrgent: isUrgentDispatch,
+    });
+
     onProceedToCheckout({
       serviceType: currentServiceType,
       serviceTitle,
@@ -238,6 +273,9 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
         currentServiceType === 'transformation' && transMode === 'hourly'
           ? pricing.hourlyRates[selectedHourlyIndex].hours
           : undefined,
+      preferredDate,
+      preferredTimeSlot: isUrgentDispatch ? 'Within 90 mins' : preferredSlot,
+      isUrgent: isUrgentDispatch,
     });
   };
 
@@ -785,6 +823,31 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
               </div>
             </div>
           )}
+
+          {/* Section: Preferred Time Slots Grid with Real-Time Firestore Availability */}
+          <div className="pt-6 border-t border-gray-200">
+            <PreferredTimeSlotsGrid
+              selectedDate={preferredDate}
+              onSelectDate={(d) => {
+                setPreferredDate(d);
+                updateCheckoutDraft({ selectedDate: d });
+              }}
+              selectedSlot={preferredSlot}
+              onSelectSlot={(s) => {
+                setPreferredSlot(s);
+                updateCheckoutDraft({ selectedSlot: s, isUrgent: false });
+              }}
+              isUrgent={isUrgentDispatch}
+              onToggleUrgent={(u) => {
+                setIsUrgentDispatch(u);
+                updateCheckoutDraft({
+                  isUrgent: u,
+                  selectedSlot: u ? 'Within 90 mins' : preferredSlot,
+                });
+              }}
+              urgentSurcharge={pricing?.urgentSurcharge || 299}
+            />
+          </div>
         </div>
 
         {/* Live-Updating Sticky Bottom Bar */}
@@ -792,7 +855,7 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
           <div>
             <div className="flex items-baseline gap-2">
               <span className="text-xl sm:text-2xl font-black text-[#12222E]">
-                ₹{currentPrice.toLocaleString('en-IN')}
+                ₹{(currentPrice + (isUrgentDispatch ? (pricing?.urgentSurcharge || 299) : 0)).toLocaleString('en-IN')}
               </span>
               {originalPrice > currentPrice && (
                 <span className="text-xs text-gray-400 line-through">
@@ -805,14 +868,22 @@ export const ServiceConfigModal: React.FC<ServiceConfigModalProps> = ({
                 </span>
               )}
             </div>
-            <p className="text-[11px] text-gray-500 line-clamp-1 max-w-xs">{configSummary}</p>
+            <div className="flex items-center gap-1.5 text-[11px] text-gray-700 font-bold mt-0.5">
+              <Clock className="w-3.5 h-3.5 text-[#FF5A5F]" />
+              <span>
+                {isUrgentDispatch
+                  ? '⚡ Urgent: Dispatched in 90 mins'
+                  : `${preferredDate} · ${preferredSlot.split(' - ')[0] || preferredSlot}`}
+              </span>
+            </div>
+            <p className="text-[10px] text-gray-400 line-clamp-1 max-w-xs">{configSummary}</p>
           </div>
 
           <button
             onClick={handleContinue}
             className="min-h-[44px] py-3 px-5 sm:px-7 rounded-[20px] bg-gradient-to-r from-[#FF5A5F] to-[#E8355C] hover:opacity-95 text-white font-extrabold text-sm flex items-center gap-2 shadow-lg shadow-[#FF5A5F]/25 transition shrink-0 active:scale-98"
           >
-            <span>Select Slot</span>
+            <span>Proceed to Checkout</span>
             <ArrowRight className="w-4 h-4" />
           </button>
         </div>

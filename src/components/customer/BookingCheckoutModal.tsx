@@ -3,6 +3,7 @@ import { useApp, useAuth } from '../../context/AppContext';
 import { AnimatedModal } from '../common/AnimatedModal';
 import { AuthOverlay } from '../auth/AuthOverlay';
 import { CleaningTier, PropertyFurnishing, BHKSize, TransformationMode, CleaningAddon } from '../../types';
+import { PreferredTimeSlotsGrid } from './PreferredTimeSlotsGrid';
 import confetti from 'canvas-confetti';
 import {
   X,
@@ -35,6 +36,9 @@ interface BookingCheckoutModalProps {
     originalAmount: number;
     specificPackage?: any;
     hourlyHours?: number;
+    preferredDate?: string;
+    preferredTimeSlot?: string;
+    isUrgent?: boolean;
   };
   onClose: () => void;
   onBackToConfig?: (config: any) => void;
@@ -81,10 +85,16 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
     }
   }, [checkoutStep]);
 
-  // Slot states initialized with draft if available
-  const [selectedDate, setSelectedDate] = useState(checkoutDraft?.selectedDate || 'Today');
-  const [selectedSlot, setSelectedSlot] = useState(checkoutDraft?.selectedSlot || '02:30 PM - 06:30 PM');
-  const [isUrgent, setIsUrgent] = useState(checkoutDraft?.isUrgent || false);
+  // Slot states initialized with config / draft if available
+  const [selectedDate, setSelectedDate] = useState(
+    config.preferredDate || checkoutDraft?.selectedDate || 'Today'
+  );
+  const [selectedSlot, setSelectedSlot] = useState(
+    config.preferredTimeSlot || checkoutDraft?.selectedSlot || '02:30 PM - 06:30 PM'
+  );
+  const [isUrgent, setIsUrgent] = useState(
+    config.isUrgent !== undefined ? config.isUrgent : (checkoutDraft?.isUrgent || false)
+  );
 
   // Coupon state
   const [couponCodeInput, setCouponCodeInput] = useState(checkoutDraft?.appliedCouponCode || '');
@@ -380,55 +390,19 @@ export const BookingCheckoutModal: React.FC<BookingCheckoutModalProps> = ({
                 </div>
               </div>
 
-              {/* Date & Time Slot Picker (if not urgent) */}
+              {/* Date & Time Slot Picker with Live Firestore Availability */}
               {!isUrgent && (
-                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-xs space-y-4">
-                  <div>
-                    <span className="text-xs font-bold text-gray-700 uppercase block mb-2">
-                      Preferred Date
-                    </span>
-                    <div className="grid grid-cols-3 gap-2">
-                      {['Today', 'Tomorrow', 'Sunday'].map((d) => (
-                        <button
-                          key={d}
-                          type="button"
-                          onClick={() => handleSelectDate(d)}
-                          className={`py-2.5 px-3 rounded-xl text-xs font-bold border transition ${
-                            selectedDate === d
-                              ? 'border-[#FF5A5F] bg-[#FFF5F6] text-[#12222E]'
-                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                          }`}
-                        >
-                          {d}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-
-                  <div>
-                    <span className="text-xs font-bold text-gray-700 uppercase block mb-2">
-                      Arrival Window
-                    </span>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {timeSlots.map((slot) => (
-                        <button
-                          key={slot}
-                          type="button"
-                          onClick={() => handleSelectSlot(slot)}
-                          className={`p-3 rounded-xl text-left border transition text-xs font-semibold flex items-center justify-between ${
-                            selectedSlot === slot
-                              ? 'border-[#FF5A5F] bg-[#FFF5F6] text-[#12222E]'
-                              : 'border-gray-200 text-gray-600 hover:border-gray-300'
-                          }`}
-                        >
-                          <span>{slot}</span>
-                          {selectedSlot === slot && (
-                            <Check className="w-3.5 h-3.5 text-[#FF5A5F]" />
-                          )}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
+                <div className="bg-white p-4 rounded-2xl border border-gray-100 shadow-xs">
+                  <PreferredTimeSlotsGrid
+                    selectedDate={selectedDate}
+                    onSelectDate={handleSelectDate}
+                    selectedSlot={selectedSlot}
+                    onSelectSlot={handleSelectSlot}
+                    isUrgent={isUrgent}
+                    onToggleUrgent={handleToggleUrgent}
+                    urgentSurcharge={pricing?.urgentSurcharge || 299}
+                    showUrgentOption={false}
+                  />
                 </div>
               )}
 

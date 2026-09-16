@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useApp } from '../../context/AppContext';
 import { BrandLogo } from './BrandLogo';
+import { ThemeToggle } from './ThemeToggle';
 import {
   Smartphone,
   Bike,
@@ -116,8 +117,10 @@ export const PortalSwitcher: React.FC = () => {
           </button>
         </div>
 
-        {/* Right: Quick Tour & View Controls */}
+        {/* Right: Quick Tour, Theme Toggle & View Controls */}
         <div className="flex items-center gap-2">
+          <ThemeToggle showLabel size="sm" />
+
           {activePortal !== 'admin' && (
             <button
               onClick={() => setViewMode(viewMode === 'frame' ? 'responsive' : 'frame')}

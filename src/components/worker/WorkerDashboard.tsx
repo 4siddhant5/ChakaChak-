@@ -4,6 +4,8 @@ import { db, collection, doc, onSnapshot, query, limit, orderBy } from '../../li
 import { Booking, Worker, AdminAuditLog } from '../../types';
 import { StatusBadge } from '../common/StatusBadge';
 import { WorkerJobDetailModal } from './WorkerJobDetailModal';
+import { WorkerCameraModal } from './WorkerCameraModal';
+import { ThemeToggle } from '../common/ThemeToggle';
 import {
   MapPin,
   Clock,
@@ -21,6 +23,7 @@ import {
   Wifi,
   Radio,
   BellRing,
+  Camera,
 } from 'lucide-react';
 
 /**
@@ -109,6 +112,8 @@ export const WorkerDashboard: React.FC = () => {
 
   const [activeTab, setActiveTab] = useState<'assigned' | 'available'>('assigned');
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [cameraModalBookingId, setCameraModalBookingId] = useState<string | null>(null);
+  const [cameraCategory, setCameraCategory] = useState<'before' | 'after'>('before');
 
   // Real-time Firestore state for jobs and worker status
   const [realtimeBookings, setRealtimeBookings] = useState<Booking[]>([]);
@@ -321,10 +326,30 @@ export const WorkerDashboard: React.FC = () => {
 
           {/* Online/Offline Quick Switcher & Real-time status */}
           <div className="flex items-center gap-2">
+            {/* Dark/Light Night Shift Toggle */}
+            <div title="Night Shift Eye-Strain Reduction Mode">
+              <ThemeToggle />
+            </div>
+
+            {/* Quick Service Camera Launcher */}
+            <button
+              type="button"
+              id="worker-quick-camera-btn"
+              onClick={() => {
+                setCameraCategory('before');
+                setCameraModalBookingId(myAssignedBookings[0]?.id || 'BK-101');
+              }}
+              className="hidden sm:flex items-center gap-1.5 px-3 py-2 rounded-2xl bg-gray-100 dark:bg-slate-800 hover:bg-[#FFF5F6] dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 hover:text-[#FF5A5F] text-xs font-bold transition border border-gray-200 dark:border-slate-700 cursor-pointer shadow-2xs"
+              title="Open Inspection & Completion Camera"
+            >
+              <Camera className="w-3.5 h-3.5 text-[#FF5A5F]" />
+              <span>Camera</span>
+            </button>
+
             {isRealtimeActive && (
               <div
                 id="worker-realtime-badge"
-                className="hidden sm:flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-bold shadow-2xs"
+                className="hidden md:flex items-center gap-1.5 px-2.5 py-1.5 rounded-2xl bg-emerald-50 dark:bg-emerald-950/60 border border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300 text-[11px] font-bold shadow-2xs"
                 title="Firestore onSnapshot listener active"
               >
                 <Radio className="w-3.5 h-3.5 text-emerald-600 animate-pulse" />
@@ -336,8 +361,8 @@ export const WorkerDashboard: React.FC = () => {
               onClick={() => toggleWorkerOnline(currentWorker.id)}
               className={`px-3 py-2 rounded-2xl text-xs font-black transition flex items-center gap-1.5 shadow-xs cursor-pointer ${
                 isOnline
-                  ? 'bg-emerald-50 text-emerald-800 border border-emerald-200'
-                  : 'bg-gray-100 text-gray-500'
+                  ? 'bg-emerald-50 dark:bg-emerald-950/70 text-emerald-800 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800'
+                  : 'bg-gray-100 dark:bg-slate-800 text-gray-500 dark:text-slate-400 border border-transparent dark:border-slate-700'
               }`}
             >
               <Power className="w-3.5 h-3.5" />
@@ -430,33 +455,33 @@ export const WorkerDashboard: React.FC = () => {
                 return (
                   <div
                     key={booking.id}
-                    className="bg-white rounded-3xl p-4 sm:p-5 border border-gray-100 shadow-xs space-y-3 transition hover:shadow-md"
+                    className="bg-white dark:bg-slate-900 rounded-3xl p-4 sm:p-5 border border-gray-100 dark:border-slate-800 shadow-xs space-y-3 transition hover:shadow-md text-gray-900 dark:text-slate-100"
                   >
                     {/* Job Card Header */}
-                    <div className="flex items-start justify-between gap-2 border-b border-gray-50 pb-3">
+                    <div className="flex items-start justify-between gap-2 border-b border-gray-50 dark:border-slate-800/80 pb-3">
                       <div>
                         <div className="flex items-center gap-2">
-                          <span className="font-mono text-xs font-bold text-gray-400">
+                          <span className="font-mono text-xs font-bold text-gray-400 dark:text-slate-500">
                             #{booking.id}
                           </span>
                           <StatusBadge status={booking.status} size="sm" />
                           {booking.isUrgent && (
-                            <span className="text-[10px] font-black bg-amber-100 text-amber-900 px-2 py-0.5 rounded-full">
+                            <span className="text-[10px] font-black bg-amber-100 dark:bg-amber-900/50 text-amber-900 dark:text-amber-200 px-2 py-0.5 rounded-full">
                               ⚡ 90-MIN RAPID
                             </span>
                           )}
                         </div>
-                        <h3 className="font-extrabold text-sm sm:text-base text-[#12222E] mt-1">
+                        <h3 className="font-extrabold text-sm sm:text-base text-[#12222E] dark:text-white mt-1">
                           {booking.serviceTitle}
                         </h3>
-                        <p className="text-xs text-gray-500 mt-0.5">{booking.configurationSummary}</p>
+                        <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">{booking.configurationSummary}</p>
                       </div>
 
                       <div className="text-right shrink-0">
-                        <span className="text-base font-black text-[#12222E]">
+                        <span className="text-base font-black text-[#12222E] dark:text-white">
                           ₹{booking.totalAmount.toLocaleString('en-IN')}
                         </span>
-                        <span className="block text-[10px] text-gray-400 font-semibold">
+                        <span className="block text-[10px] text-gray-400 dark:text-slate-500 font-semibold">
                           {booking.balanceDue > 0
                             ? `₹${booking.balanceDue} to collect`
                             : 'Paid in Full'}
@@ -465,9 +490,9 @@ export const WorkerDashboard: React.FC = () => {
                     </div>
 
                     {/* Location & Time info */}
-                    <div className="space-y-1.5 text-xs text-gray-600">
+                    <div className="space-y-1.5 text-xs text-gray-600 dark:text-slate-300">
                       <div className="flex items-center gap-2">
-                        <Clock className="w-3.5 h-3.5 text-gray-400 shrink-0" />
+                        <Clock className="w-3.5 h-3.5 text-gray-400 dark:text-slate-500 shrink-0" />
                         <span>
                           {booking.date} · {booking.timeSlot}
                         </span>
@@ -487,13 +512,13 @@ export const WorkerDashboard: React.FC = () => {
                     </div>
 
                     {/* Action Row */}
-                    <div className="pt-2 border-t border-gray-100 flex items-center justify-between gap-2">
-                      <div className="flex gap-1.5">
+                    <div className="pt-2 border-t border-gray-100 dark:border-slate-800 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-1.5">
                         <button
                           onClick={() =>
                             showToast(`Calling ${booking.customerName}: ${booking.customerPhone}`)
                           }
-                          className="p-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 cursor-pointer"
+                          className="p-2 rounded-xl bg-gray-100 dark:bg-slate-800 hover:bg-gray-200 dark:hover:bg-slate-700 text-gray-700 dark:text-slate-200 cursor-pointer"
                           title="Call Customer"
                         >
                           <Phone className="w-4 h-4" />
@@ -506,16 +531,32 @@ export const WorkerDashboard: React.FC = () => {
                               }`
                             )
                           }
-                          className="p-2 rounded-xl bg-blue-50 text-blue-700 hover:bg-blue-100 cursor-pointer"
+                          className="p-2 rounded-xl bg-blue-50 dark:bg-blue-950/60 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-900 cursor-pointer"
                           title="Navigate"
                         >
                           <Navigation className="w-4 h-4" />
+                        </button>
+
+                        {/* Quick Camera Capture Button */}
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setCameraCategory(booking.status === 'completed' ? 'after' : 'before');
+                            setCameraModalBookingId(booking.id);
+                          }}
+                          className="p-2 rounded-xl bg-rose-50 dark:bg-rose-950/50 hover:bg-rose-100 dark:hover:bg-rose-900/60 text-rose-700 dark:text-rose-300 font-bold text-xs flex items-center gap-1 transition cursor-pointer border border-rose-200 dark:border-rose-800/60"
+                          title="Snap Before/After Service Photo"
+                        >
+                          <Camera className="w-4 h-4 text-[#FF5A5F]" />
+                          <span className="text-[10px] font-bold hidden sm:inline">
+                            {booking.status === 'completed' ? 'After Proof' : 'Before Photo'}
+                          </span>
                         </button>
                       </div>
 
                       <button
                         onClick={() => setSelectedJobId(booking.id)}
-                        className="py-2 px-4 rounded-xl bg-[#12222E] hover:bg-black text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
+                        className="py-2 px-4 rounded-xl bg-[#12222E] hover:bg-black dark:bg-[#FF5A5F] dark:hover:bg-[#E8355C] text-white text-xs font-bold flex items-center gap-1.5 transition cursor-pointer shadow-xs"
                       >
                         <span>Open Checklist & Action</span>
                         <ChevronRight className="w-3.5 h-3.5" />
@@ -536,6 +577,14 @@ export const WorkerDashboard: React.FC = () => {
           onClose={() => setSelectedJobId(null)}
         />
       )}
+
+      {/* Quick Service Camera Modal for Job Cards */}
+      <WorkerCameraModal
+        isOpen={!!cameraModalBookingId}
+        onClose={() => setCameraModalBookingId(null)}
+        defaultBookingId={cameraModalBookingId || undefined}
+        defaultCategory={cameraCategory}
+      />
     </div>
   );
 };
